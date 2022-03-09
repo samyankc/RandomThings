@@ -4,10 +4,6 @@
 #include <iomanip>
 #include <chrono>
 #include <array>
-#include <cstdlib>
-#include <initializer_list>
-
-using std::array, std::cout, std::endl;
 
 constexpr static auto BoardWidth        = 10;
 constexpr static auto BoardHeight       = 16;
@@ -18,18 +14,15 @@ constexpr static auto TetrominoVariationSize = 7;
 using TetrominoVariation = uint64_t;
 
 constexpr static auto TetrominoVariations =
-array<TetrominoVariation, TetrominoVariationSize>{
+std::array<TetrominoVariation, TetrominoVariationSize>{
 0x22220F0022220F00, 0x4460740062202E00, 0x6440E20022604700, 0x2640630026406300,
 0x46206C0046206C00, 0x6600660066006600, 0x2320720026202700 };
 
 struct Action
 {
-    int8_t RelativeX;
-    int8_t RelativeY;
+    int8_t RelativeX, RelativeY;
     uint8_t Rotation : 2;
-
     bool operator==( const Action& ) const = default;
-
     const static Action NONE, DOWN, LEFT, RIGHT, ROTATE_L, ROTATE_R;
 };
 constexpr Action Action::NONE     = {};
@@ -67,8 +60,6 @@ struct Tetromino
     const TetrominoVariation Variation;
     Action State{ BoardWidth / 2 - 2, BoardHeight, 0 };
 
-    Tetromino( const Tetromino& ) = default;
-
     Tetromino( int rand_num )
         : Variation{ TetrominoVariations[ rand_num % TetrominoVariationSize ] }
     {}
@@ -88,9 +79,8 @@ struct Tetromino
 
 const auto STD_OUT = GetStdHandle( STD_OUTPUT_HANDLE );
 
-using Block  = bool;
-using Column = array<Block, ActualBoardHeight>;
-struct Board : array<Column, BoardWidth>
+using Column = std::array<bool, ActualBoardHeight>;
+struct Board : std::array<Column, BoardWidth>
 {
     bool FullRow( int y )
     {
@@ -126,13 +116,13 @@ struct Board : array<Column, BoardWidth>
 
         for( auto y = BoardHeight; y-- > 0; )
         {
-            cout << " |";
+            std::cout << " |";
             for( auto x = 0; x < BoardWidth; ++x )
-                cout << ( DisplayBuffer[ x ][ y ] ? '*' : ' ' );
-            cout << "|\n";
+                std::cout << ( DisplayBuffer[ x ][ y ] ? '*' : ' ' );
+            std::cout << "|\n";
         }
-        cout << " +" << std::setfill( '-' ) << std::setw( BoardWidth + 1 ) << "+";
-        cout << endl;
+        std::cout << " +" << std::setfill( '-' ) << std::setw( BoardWidth + 1 )
+                  << "+" << std::endl;
     }
 
     bool Collide( const Tetromino& Piece )
@@ -168,7 +158,7 @@ struct Board : array<Column, BoardWidth>
         {
             auto Piece = Tetromino{ rand() };
             if( Collide( Piece ) ) break;
-            
+
             auto LastUpdate = steady_clock::now();
             bool EndTurn    = false;
             while( ! EndTurn )
@@ -178,7 +168,6 @@ struct Board : array<Column, BoardWidth>
                 if( Act == Action::NONE )
                 {
                     if( steady_clock::now() - LastUpdate < 200ms ) continue;
-
                     Act        = Action::DOWN;
                     LastUpdate = steady_clock::now();
                 }
@@ -196,10 +185,6 @@ struct Board : array<Column, BoardWidth>
     }
 };
 
-static auto disable_stdio_sync = [] {
-    return std::ios_base::sync_with_stdio( false );
-}();
-
 void HideConsoleCursor()
 {
     CONSOLE_CURSOR_INFO cursorInfo{ 1, 0 };
@@ -209,8 +194,6 @@ void HideConsoleCursor()
 int main()
 {
     HideConsoleCursor();
-
     Board{}.MainLoop();
-
     return 0;
 }
